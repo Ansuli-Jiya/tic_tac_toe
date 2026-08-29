@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html>
+
 <head>
+
     <title>Online Tic Tac Toe</title>
 
     <style>
+
         .board {
             display: grid;
             grid-template-columns: repeat(3, 80px);
@@ -15,18 +18,24 @@
             height: 80px;
             font-size: 30px;
         }
+
     </style>
+
 </head>
+
 
 <body>
 
     <h1>Tic Tac Toe</h1>
 
+
     <!-- CREATE GAME -->
 
     <h3>Create Game</h3>
 
-    <button onclick="createGame()">Create Game</button>
+    <button onclick="createGame()">
+        Create Game
+    </button>
 
     <p id="myId"></p>
 
@@ -44,19 +53,27 @@
         placeholder="Enter Game ID"
     >
 
-    <button onclick="joinGame()">Join Game</button>
+    <button onclick="joinGame()">
+        Join Game
+    </button>
 
 
-    <p id="status">Create or join a game.</p>
+    <p id="status">
+        Create or join a game.
+    </p>
 
 
     <hr>
 
 
-    <!-- GAME -->
+    <!-- TURN -->
 
-    <h3 id="turn">Waiting for players...</h3>
+    <h3 id="turn">
+        Waiting for players...
+    </h3>
 
+
+    <!-- BOARD -->
 
     <div class="board">
 
@@ -77,19 +94,27 @@
 
     <br>
 
-    <button onclick="restartGame()">Restart Game</button>
+
+    <button onclick="restartGame()">
+        Restart Game
+    </button>
 
 
-    <!-- PeerJS -->
+    <!-- PEERJS -->
 
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 
     <script>
 
-        let peer;
 
-        let connection;
+        // =====================================================
+        // VARIABLES
+        // =====================================================
+
+        let peer = null;
+
+        let connection = null;
 
         let mySymbol = "";
 
@@ -100,56 +125,111 @@
         let gameOver = false;
 
 
-        // The 9 positions on the board
-
         let board = [
-            "", "", "",
-            "", "", "",
-            "", "", ""
+
+            "",
+            "",
+            "",
+
+            "",
+            "",
+            "",
+
+            "",
+            ""
+
         ];
 
 
-        // Winning combinations
+        const cells =
+            document.querySelectorAll(".cell");
+
 
         const winningPatterns = [
 
             [0, 1, 2],
+
             [3, 4, 5],
+
             [6, 7, 8],
 
             [0, 3, 6],
+
             [1, 4, 7],
+
             [2, 5, 8],
 
             [0, 4, 8],
+
             [2, 4, 6]
 
         ];
 
 
-        // Get all cells
+        // =====================================================
+        // PEERJS CONFIGURATION
+        // =====================================================
 
-        const cells = document.querySelectorAll(".cell");
+        const peerConfig = {
+
+            config: {
+
+                iceServers: [
+
+                    {
+                        urls: "stun:stun.l.google.com:19302"
+                    },
+
+                    {
+                        urls: "stun:stun1.l.google.com:19302"
+                    },
+
+                    {
+                        urls: "stun:stun2.l.google.com:19302"
+                    },
+
+                    {
+                        urls: "stun:stun3.l.google.com:19302"
+                    },
+
+                    {
+                        urls: "stun:stun4.l.google.com:19302"
+                    }
+
+                ]
+
+            }
+
+        };
 
 
-        // ==========================================
+        // =====================================================
         // CREATE GAME
-        // ==========================================
+        // =====================================================
 
         function createGame() {
 
-            peer = new Peer();
+            console.log("Creating game...");
+
+
+            peer = new Peer(peerConfig);
 
 
             peer.on("open", function(id) {
 
+                console.log("My Peer ID:", id);
+
+
                 mySymbol = "X";
+
 
                 document.getElementById("myId").textContent =
                     "Your Game ID: " + id;
 
+
                 document.getElementById("status").textContent =
-                    "You are Player X. Share your Game ID with Player O.";
+                    "You are Player X. Share this Game ID with Player O.";
+
 
                 document.getElementById("turn").textContent =
                     "Waiting for Player O...";
@@ -161,27 +241,43 @@
 
             peer.on("connection", function(conn) {
 
+                console.log("Incoming connection received.");
+
                 connection = conn;
 
                 mySymbol = "X";
 
-                gameStarted = true;
+                setupConnection();
+
+            });
+
+
+            peer.on("error", function(error) {
+
+                console.error("PEER ERROR:", error);
+
 
                 document.getElementById("status").textContent =
-                    "Player O connected!";
+                    "Peer error: " + error.type;
 
-                updateTurn();
+            });
 
-                setupConnection();
+
+            peer.on("disconnected", function() {
+
+                console.log("Peer disconnected.");
+
+                document.getElementById("status").textContent =
+                    "Disconnected from PeerJS server.";
 
             });
 
         }
 
 
-        // ==========================================
+        // =====================================================
         // JOIN GAME
-        // ==========================================
+        // =====================================================
 
         function joinGame() {
 
@@ -199,55 +295,120 @@
             }
 
 
-            peer = new Peer();
+            console.log("Joining:", friendId);
 
 
-            peer.on("open", function() {
+            peer = new Peer(peerConfig);
+
+
+            peer.on("open", function(myId) {
+
+                console.log("My Peer ID:", myId);
+
 
                 mySymbol = "O";
 
-                connection = peer.connect(friendId);
+
+                document.getElementById("status").textContent =
+                    "Connecting to Player X...";
+
+
+                connection =
+                    peer.connect(friendId, {
+
+                        reliable: true
+
+                    });
+
 
                 setupConnection();
+
+            });
+
+
+            peer.on("error", function(error) {
+
+                console.error("PEER ERROR:", error);
+
+
+                document.getElementById("status").textContent =
+                    "Peer error: " + error.type;
+
+            });
+
+
+            peer.on("disconnected", function() {
+
+                console.log("Peer disconnected.");
 
             });
 
         }
 
 
-        // ==========================================
-        // SETUP CONNECTION
-        // ==========================================
+        // =====================================================
+        // CONNECTION SETUP
+        // =====================================================
 
         function setupConnection() {
 
+            if (!connection) {
+
+                return;
+
+            }
+
+
+            console.log("Setting up connection...");
+
+
             connection.on("open", function() {
+
+                console.log("DATA CONNECTION OPEN!");
+
 
                 gameStarted = true;
 
+
                 document.getElementById("status").textContent =
                     "Connected! You are Player " + mySymbol;
+
 
                 updateTurn();
 
             });
 
 
-            // Receive information from the other player
+            // =================================================
+            // RECEIVE DATA
+            // =================================================
 
             connection.on("data", function(data) {
 
-                // Receive a move
+                console.log("DATA RECEIVED:", data);
 
-                if (data.type === "move") {
 
-                    board[data.position] = data.symbol;
+                // Receive game state
+
+                if (data.type === "gameState") {
+
+                    console.log("Updating board from other player.");
+
+
+                    board = data.board;
+
+                    currentPlayer =
+                        data.currentPlayer;
+
+                    gameOver =
+                        data.gameOver;
+
 
                     updateBoard();
 
-                    currentPlayer = data.symbol === "X" ? "O" : "X";
 
-                    checkWinner();
+                    showGameResult();
+
 
                     updateTurn();
 
@@ -258,31 +419,111 @@
 
                 if (data.type === "restart") {
 
-                    resetBoard();
+                    console.log("Restart received.");
+
+
+                    board = [
+
+                        "",
+                        "",
+                        "",
+
+                        "",
+                        "",
+                        "",
+
+                        "",
+                        ""
+
+                    ];
+
+
+                    currentPlayer = "X";
+
+                    gameOver = false;
+
+
+                    updateBoard();
+
+
+                    document.getElementById("status").textContent =
+                        "Game restarted.";
+
+
+                    updateTurn();
 
                 }
+
+            });
+
+
+            // =================================================
+            // CONNECTION CLOSE
+            // =================================================
+
+            connection.on("close", function() {
+
+                console.log("Connection closed.");
+
+
+                gameStarted = false;
+
+
+                document.getElementById("status").textContent =
+                    "The other player disconnected.";
+
+
+                document.getElementById("turn").textContent =
+                    "Waiting for player...";
+
+            });
+
+
+            // =================================================
+            // CONNECTION ERROR
+            // =================================================
+
+            connection.on("error", function(error) {
+
+                console.error(
+                    "DATA CONNECTION ERROR:",
+                    error
+                );
+
+
+                document.getElementById("status").textContent =
+                    "Connection error. Check the browser console.";
 
             });
 
         }
 
 
-        // ==========================================
+        // =====================================================
         // MAKE MOVE
-        // ==========================================
+        // =====================================================
 
         function makeMove(position) {
 
-            // Game not started
+            console.log(
+                "Attempting move:",
+                position
+            );
+
+
+            // Game hasn't started
 
             if (!gameStarted) {
+
+                document.getElementById("status").textContent =
+                    "Wait for the other player to join.";
 
                 return;
 
             }
 
 
-            // Game already finished
+            // Game finished
 
             if (gameOver) {
 
@@ -291,9 +532,12 @@
             }
 
 
-            // Not your turn
+            // Not our turn
 
             if (currentPlayer !== mySymbol) {
+
+                document.getElementById("status").textContent =
+                    "Wait for your turn.";
 
                 return;
 
@@ -309,27 +553,18 @@
             }
 
 
-            // Add move
+            // =================================================
+            // MAKE MOVE
+            // =================================================
 
-            board[position] = mySymbol;
-
-
-            // Update our board
-
-            updateBoard();
+            board[position] =
+                mySymbol;
 
 
-            // Send move to other player
-
-            connection.send({
-
-                type: "move",
-
-                position: position,
-
-                symbol: mySymbol
-
-            });
+            console.log(
+                "Board after move:",
+                board
+            );
 
 
             // Check winner
@@ -337,38 +572,98 @@
             checkWinner();
 
 
-            // Change turn
+            // Change player if game continues
 
             if (!gameOver) {
 
                 currentPlayer =
-                    currentPlayer === "X" ? "O" : "X";
+                    currentPlayer === "X"
+                    ? "O"
+                    : "X";
 
-                updateTurn();
+            }
+
+
+            // Update our screen
+
+            updateBoard();
+
+            showGameResult();
+
+            updateTurn();
+
+
+            // =================================================
+            // SEND TO OTHER PLAYER
+            // =================================================
+
+            if (
+                connection &&
+                connection.open
+            ) {
+
+                const gameState = {
+
+                    type: "gameState",
+
+                    board: board,
+
+                    currentPlayer:
+                        currentPlayer,
+
+                    gameOver:
+                        gameOver
+
+                };
+
+
+                console.log(
+                    "SENDING:",
+                    gameState
+                );
+
+
+                connection.send(gameState);
+
+
+                console.log(
+                    "SEND COMPLETE"
+                );
+
+            } else {
+
+                console.error(
+                    "Connection is not open!"
+                );
+
+
+                document.getElementById("status").textContent =
+                    "Connection lost.";
 
             }
 
         }
 
 
-        // ==========================================
+        // =====================================================
         // UPDATE BOARD
-        // ==========================================
+        // =====================================================
 
         function updateBoard() {
 
             cells.forEach(function(cell, index) {
 
-                cell.textContent = board[index];
+                cell.textContent =
+                    board[index];
 
             });
 
         }
 
 
-        // ==========================================
+        // =====================================================
         // UPDATE TURN
-        // ==========================================
+        // =====================================================
 
         function updateTurn() {
 
@@ -401,19 +696,70 @@
         }
 
 
-        // ==========================================
+        // =====================================================
         // CHECK WINNER
-        // ==========================================
+        // =====================================================
 
         function checkWinner() {
 
-            for (let pattern of winningPatterns) {
+            for (
+                let pattern of winningPatterns
+            ) {
 
-                let a = board[pattern[0]];
+                const a =
+                    board[pattern[0]];
 
-                let b = board[pattern[1]];
+                const b =
+                    board[pattern[1]];
 
-                let c = board[pattern[2]];
+                const c =
+                    board[pattern[2]];
+
+
+                if (
+                    a !== "" &&
+                    a === b &&
+                    b === c
+                ) {
+
+                    gameOver = true;
+
+                    return;
+
+                }
+
+            }
+
+
+            // Draw
+
+            if (!board.includes("")) {
+
+                gameOver = true;
+
+            }
+
+        }
+
+
+        // =====================================================
+        // SHOW RESULT
+        // =====================================================
+
+        function showGameResult() {
+
+            for (
+                let pattern of winningPatterns
+            ) {
+
+                const a =
+                    board[pattern[0]];
+
+                const b =
+                    board[pattern[1]];
+
+                const c =
+                    board[pattern[2]];
 
 
                 if (
@@ -425,8 +771,6 @@
                     document.getElementById("status").textContent =
                         "Player " + a + " Wins!";
 
-                    gameOver = true;
-
                     return;
 
                 }
@@ -434,23 +778,19 @@
             }
 
 
-            // Check draw
-
             if (!board.includes("")) {
 
                 document.getElementById("status").textContent =
                     "It's a Draw!";
-
-                gameOver = true;
 
             }
 
         }
 
 
-        // ==========================================
+        // =====================================================
         // RESTART GAME
-        // ==========================================
+        // =====================================================
 
         function restartGame() {
 
@@ -461,33 +801,18 @@
             }
 
 
-            resetBoard();
-
-
-            // Tell the other player
-
-            connection.send({
-
-                type: "restart"
-
-            });
-
-        }
-
-
-        // ==========================================
-        // RESET BOARD
-        // ==========================================
-
-        function resetBoard() {
-
             board = [
 
-                "", "", "",
+                "",
+                "",
+                "",
 
-                "", "", "",
+                "",
+                "",
+                "",
 
-                "", "", ""
+                "",
+                ""
 
             ];
 
@@ -503,11 +828,29 @@
             document.getElementById("status").textContent =
                 "Game restarted.";
 
+
             updateTurn();
+
+
+            // Send restart
+
+            if (
+                connection &&
+                connection.open
+            ) {
+
+                connection.send({
+
+                    type: "restart"
+
+                });
+
+            }
 
         }
 
     </script>
 
 </body>
+
 </html>
