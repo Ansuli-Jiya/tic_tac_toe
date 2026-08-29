@@ -1,8 +1,7 @@
-
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Tic Tac Toe</title>
+    <title>Online Tic Tac Toe</title>
 
     <style>
         .board {
@@ -23,41 +22,94 @@
 
     <h1>Tic Tac Toe</h1>
 
-    <p id="turn">Player X's Turn</p>
+    <!-- CREATE GAME -->
+
+    <h3>Create Game</h3>
+
+    <button onclick="createGame()">Create Game</button>
+
+    <p id="myId"></p>
+
+
+    <hr>
+
+
+    <!-- JOIN GAME -->
+
+    <h3>Join Game</h3>
+
+    <input
+        type="text"
+        id="friendId"
+        placeholder="Enter Game ID"
+    >
+
+    <button onclick="joinGame()">Join Game</button>
+
+
+    <p id="status">Create or join a game.</p>
+
+
+    <hr>
+
+
+    <!-- GAME -->
+
+    <h3 id="turn">Waiting for players...</h3>
+
 
     <div class="board">
 
-        <button class="cell"></button>
-        <button class="cell"></button>
-        <button class="cell"></button>
+        <button class="cell" onclick="makeMove(0)"></button>
+        <button class="cell" onclick="makeMove(1)"></button>
+        <button class="cell" onclick="makeMove(2)"></button>
 
-        <button class="cell"></button>
-        <button class="cell"></button>
-        <button class="cell"></button>
+        <button class="cell" onclick="makeMove(3)"></button>
+        <button class="cell" onclick="makeMove(4)"></button>
+        <button class="cell" onclick="makeMove(5)"></button>
 
-        <button class="cell"></button>
-        <button class="cell"></button>
-        <button class="cell"></button>
+        <button class="cell" onclick="makeMove(6)"></button>
+        <button class="cell" onclick="makeMove(7)"></button>
+        <button class="cell" onclick="makeMove(8)"></button>
 
     </div>
 
-    <h3 id="result"></h3>
 
-    <button onclick="restartGame()">Restart</button>
+    <br>
+
+    <button onclick="restartGame()">Restart Game</button>
+
+
+    <!-- PeerJS -->
+
+    <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
 
     <script>
 
-        const cells = document.querySelectorAll(".cell");
+        let peer;
 
-        const turn = document.getElementById("turn");
+        let connection;
 
-        const result = document.getElementById("result");
+        let mySymbol = "";
 
         let currentPlayer = "X";
 
+        let gameStarted = false;
+
         let gameOver = false;
 
+
+        // The 9 positions on the board
+
+        let board = [
+            "", "", "",
+            "", "", "",
+            "", "", ""
+        ];
+
+
+        // Winning combinations
 
         const winningPatterns = [
 
@@ -75,94 +127,383 @@
         ];
 
 
-        cells.forEach((cell, index) => {
+        // Get all cells
 
-            cell.addEventListener("click", function () {
+        const cells = document.querySelectorAll(".cell");
 
-                // Don't allow a move after the game ends
-                if (cell.textContent !== "" || gameOver) {
-                    return;
-                }
 
-                // Put X or O
-                cell.textContent = currentPlayer;
+        // ==========================================
+        // CREATE GAME
+        // ==========================================
 
-                checkWinner();
+        function createGame() {
+
+            peer = new Peer();
+
+
+            peer.on("open", function(id) {
+
+                mySymbol = "X";
+
+                document.getElementById("myId").textContent =
+                    "Your Game ID: " + id;
+
+                document.getElementById("status").textContent =
+                    "You are Player X. Share your Game ID with Player O.";
+
+                document.getElementById("turn").textContent =
+                    "Waiting for Player O...";
 
             });
 
-        });
 
+            // Player O connects
+
+            peer.on("connection", function(conn) {
+
+                connection = conn;
+
+                mySymbol = "X";
+
+                gameStarted = true;
+
+                document.getElementById("status").textContent =
+                    "Player O connected!";
+
+                updateTurn();
+
+                setupConnection();
+
+            });
+
+        }
+
+
+        // ==========================================
+        // JOIN GAME
+        // ==========================================
+
+        function joinGame() {
+
+            const friendId =
+                document.getElementById("friendId").value.trim();
+
+
+            if (friendId === "") {
+
+                document.getElementById("status").textContent =
+                    "Please enter a Game ID.";
+
+                return;
+
+            }
+
+
+            peer = new Peer();
+
+
+            peer.on("open", function() {
+
+                mySymbol = "O";
+
+                connection = peer.connect(friendId);
+
+                setupConnection();
+
+            });
+
+        }
+
+
+        // ==========================================
+        // SETUP CONNECTION
+        // ==========================================
+
+        function setupConnection() {
+
+            connection.on("open", function() {
+
+                gameStarted = true;
+
+                document.getElementById("status").textContent =
+                    "Connected! You are Player " + mySymbol;
+
+                updateTurn();
+
+            });
+
+
+            // Receive information from the other player
+
+            connection.on("data", function(data) {
+
+                // Receive a move
+
+                if (data.type === "move") {
+
+                    board[data.position] = data.symbol;
+
+                    updateBoard();
+
+                    currentPlayer = data.symbol === "X" ? "O" : "X";
+
+                    checkWinner();
+
+                    updateTurn();
+
+                }
+
+
+                // Receive restart
+
+                if (data.type === "restart") {
+
+                    resetBoard();
+
+                }
+
+            });
+
+        }
+
+
+        // ==========================================
+        // MAKE MOVE
+        // ==========================================
+
+        function makeMove(position) {
+
+            // Game not started
+
+            if (!gameStarted) {
+
+                return;
+
+            }
+
+
+            // Game already finished
+
+            if (gameOver) {
+
+                return;
+
+            }
+
+
+            // Not your turn
+
+            if (currentPlayer !== mySymbol) {
+
+                return;
+
+            }
+
+
+            // Cell already occupied
+
+            if (board[position] !== "") {
+
+                return;
+
+            }
+
+
+            // Add move
+
+            board[position] = mySymbol;
+
+
+            // Update our board
+
+            updateBoard();
+
+
+            // Send move to other player
+
+            connection.send({
+
+                type: "move",
+
+                position: position,
+
+                symbol: mySymbol
+
+            });
+
+
+            // Check winner
+
+            checkWinner();
+
+
+            // Change turn
+
+            if (!gameOver) {
+
+                currentPlayer =
+                    currentPlayer === "X" ? "O" : "X";
+
+                updateTurn();
+
+            }
+
+        }
+
+
+        // ==========================================
+        // UPDATE BOARD
+        // ==========================================
+
+        function updateBoard() {
+
+            cells.forEach(function(cell, index) {
+
+                cell.textContent = board[index];
+
+            });
+
+        }
+
+
+        // ==========================================
+        // UPDATE TURN
+        // ==========================================
+
+        function updateTurn() {
+
+            if (!gameStarted) {
+
+                return;
+
+            }
+
+
+            if (gameOver) {
+
+                return;
+
+            }
+
+
+            if (currentPlayer === mySymbol) {
+
+                document.getElementById("turn").textContent =
+                    "Your Turn (" + mySymbol + ")";
+
+            } else {
+
+                document.getElementById("turn").textContent =
+                    "Player " + currentPlayer + "'s Turn";
+
+            }
+
+        }
+
+
+        // ==========================================
+        // CHECK WINNER
+        // ==========================================
 
         function checkWinner() {
 
             for (let pattern of winningPatterns) {
 
-                let a = cells[pattern[0]].textContent;
-                let b = cells[pattern[1]].textContent;
-                let c = cells[pattern[2]].textContent;
+                let a = board[pattern[0]];
 
-                if (a !== "" && a === b && b === c) {
+                let b = board[pattern[1]];
 
-                    result.textContent =
-                        "Player " + currentPlayer + " Wins!";
+                let c = board[pattern[2]];
+
+
+                if (
+                    a !== "" &&
+                    a === b &&
+                    b === c
+                ) {
+
+                    document.getElementById("status").textContent =
+                        "Player " + a + " Wins!";
 
                     gameOver = true;
 
                     return;
+
                 }
+
             }
 
 
-            // Check for draw
+            // Check draw
 
-            let allFilled = true;
+            if (!board.includes("")) {
 
-            cells.forEach(cell => {
-
-                if (cell.textContent === "") {
-                    allFilled = false;
-                }
-
-            });
-
-
-            if (allFilled) {
-
-                result.textContent = "It's a Draw!";
+                document.getElementById("status").textContent =
+                    "It's a Draw!";
 
                 gameOver = true;
 
-                return;
             }
-
-
-            // Change player
-
-            currentPlayer =
-                currentPlayer === "X" ? "O" : "X";
-
-            turn.textContent =
-                "Player " + currentPlayer + "'s Turn";
 
         }
 
 
+        // ==========================================
+        // RESTART GAME
+        // ==========================================
+
         function restartGame() {
 
-            cells.forEach(cell => {
+            if (!gameStarted) {
 
-                cell.textContent = "";
+                return;
+
+            }
+
+
+            resetBoard();
+
+
+            // Tell the other player
+
+            connection.send({
+
+                type: "restart"
 
             });
+
+        }
+
+
+        // ==========================================
+        // RESET BOARD
+        // ==========================================
+
+        function resetBoard() {
+
+            board = [
+
+                "", "", "",
+
+                "", "", "",
+
+                "", "", ""
+
+            ];
+
 
             currentPlayer = "X";
 
             gameOver = false;
 
-            turn.textContent = "Player X's Turn";
 
-            result.textContent = "";
+            updateBoard();
+
+
+            document.getElementById("status").textContent =
+                "Game restarted.";
+
+            updateTurn();
 
         }
 
