@@ -2,11 +2,9 @@
 <html>
 
 <head>
-
     <title>Online Tic Tac Toe</title>
 
     <style>
-
         .board {
             display: grid;
             grid-template-columns: repeat(3, 80px);
@@ -18,32 +16,20 @@
             height: 80px;
             font-size: 30px;
         }
-
     </style>
-
 </head>
-
 
 <body>
 
     <h1>Tic Tac Toe</h1>
 
-
-    <!-- CREATE GAME -->
-
     <h3>Create Game</h3>
 
-    <button onclick="createGame()">
-        Create Game
-    </button>
+    <button onclick="createGame()">Create Game</button>
 
     <p id="myId"></p>
 
-
     <hr>
-
-
-    <!-- JOIN GAME -->
 
     <h3>Join Game</h3>
 
@@ -53,27 +39,13 @@
         placeholder="Enter Game ID"
     >
 
-    <button onclick="joinGame()">
-        Join Game
-    </button>
+    <button onclick="joinGame()">Join Game</button>
 
-
-    <p id="status">
-        Create or join a game.
-    </p>
-
+    <p id="status">Create or join a game.</p>
 
     <hr>
 
-
-    <!-- TURN -->
-
-    <h3 id="turn">
-        Waiting for players...
-    </h3>
-
-
-    <!-- BOARD -->
+    <h3 id="turn">Waiting for players...</h3>
 
     <div class="board">
 
@@ -91,29 +63,16 @@
 
     </div>
 
-
     <br>
 
+    <button onclick="restartGame()">Restart Game</button>
 
-    <button onclick="restartGame()">
-        Restart Game
-    </button>
-
-
-    <!-- PEERJS -->
 
     <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 
-
     <script>
 
-
-        // =====================================================
-        // VARIABLES
-        // =====================================================
-
         let peer = null;
-
         let connection = null;
 
         let mySymbol = "";
@@ -124,112 +83,66 @@
 
         let gameOver = false;
 
-
         let board = [
-
-            "",
-            "",
-            "",
-
-            "",
-            "",
-            "",
-
-            "",
-            ""
-
+            "", "", "",
+            "", "", "",
+            "", "", ""
         ];
 
 
-        const cells =
-            document.querySelectorAll(".cell");
+        const cells = document.querySelectorAll(".cell");
 
 
         const winningPatterns = [
-
             [0, 1, 2],
-
             [3, 4, 5],
-
             [6, 7, 8],
 
             [0, 3, 6],
-
             [1, 4, 7],
-
             [2, 5, 8],
 
             [0, 4, 8],
-
             [2, 4, 6]
-
         ];
 
 
-        // =====================================================
-        // PEERJS CONFIGURATION
-        // =====================================================
-
-        const peerConfig = {
-
-            config: {
-
-                iceServers: [
-
-                    {
-                        urls: "stun:stun.l.google.com:19302"
-                    },
-
-                    {
-                        urls: "stun:stun1.l.google.com:19302"
-                    },
-
-                    {
-                        urls: "stun:stun2.l.google.com:19302"
-                    },
-
-                    {
-                        urls: "stun:stun3.l.google.com:19302"
-                    },
-
-                    {
-                        urls: "stun:stun4.l.google.com:19302"
-                    }
-
-                ]
-
-            }
-
-        };
-
-
-        // =====================================================
+        // ==================================================
         // CREATE GAME
-        // =====================================================
+        // ==================================================
 
         function createGame() {
 
-            console.log("Creating game...");
+            peer = new Peer({
 
+                config: {
 
-            peer = new Peer(peerConfig);
+                    iceServers: [
+
+                        {
+                            urls: "stun:stun.l.google.com:19302"
+                        },
+
+                        {
+                            urls: "stun:stun1.l.google.com:19302"
+                        }
+
+                    ]
+
+                }
+
+            });
 
 
             peer.on("open", function(id) {
 
-                console.log("My Peer ID:", id);
-
-
                 mySymbol = "X";
-
 
                 document.getElementById("myId").textContent =
                     "Your Game ID: " + id;
 
-
                 document.getElementById("status").textContent =
-                    "You are Player X. Share this Game ID with Player O.";
-
+                    "You are X. Share this ID with Player O.";
 
                 document.getElementById("turn").textContent =
                     "Waiting for Player O...";
@@ -237,15 +150,9 @@
             });
 
 
-            // Player O connects
-
             peer.on("connection", function(conn) {
 
-                console.log("Incoming connection received.");
-
                 connection = conn;
-
-                mySymbol = "X";
 
                 setupConnection();
 
@@ -254,30 +161,19 @@
 
             peer.on("error", function(error) {
 
-                console.error("PEER ERROR:", error);
-
-
-                document.getElementById("status").textContent =
-                    "Peer error: " + error.type;
-
-            });
-
-
-            peer.on("disconnected", function() {
-
-                console.log("Peer disconnected.");
+                console.log("Peer error:", error);
 
                 document.getElementById("status").textContent =
-                    "Disconnected from PeerJS server.";
+                    "Connection error: " + error.type;
 
             });
 
         }
 
 
-        // =====================================================
+        // ==================================================
         // JOIN GAME
-        // =====================================================
+        // ==================================================
 
         function joinGame() {
 
@@ -288,37 +184,47 @@
             if (friendId === "") {
 
                 document.getElementById("status").textContent =
-                    "Please enter a Game ID.";
+                    "Enter a Game ID.";
 
                 return;
 
             }
 
 
-            console.log("Joining:", friendId);
+            peer = new Peer({
+
+                config: {
+
+                    iceServers: [
+
+                        {
+                            urls: "stun:stun.l.google.com:19302"
+                        },
+
+                        {
+                            urls: "stun:stun1.l.google.com:19302"
+                        }
+
+                    ]
+
+                }
+
+            });
 
 
-            peer = new Peer(peerConfig);
-
-
-            peer.on("open", function(myId) {
-
-                console.log("My Peer ID:", myId);
-
+            peer.on("open", function() {
 
                 mySymbol = "O";
 
+                connection = peer.connect(
 
-                document.getElementById("status").textContent =
-                    "Connecting to Player X...";
+                    friendId,
 
-
-                connection =
-                    peer.connect(friendId, {
-
+                    {
                         reliable: true
+                    }
 
-                    });
+                );
 
 
                 setupConnection();
@@ -328,150 +234,72 @@
 
             peer.on("error", function(error) {
 
-                console.error("PEER ERROR:", error);
-
+                console.log("Peer error:", error);
 
                 document.getElementById("status").textContent =
-                    "Peer error: " + error.type;
-
-            });
-
-
-            peer.on("disconnected", function() {
-
-                console.log("Peer disconnected.");
+                    "Connection error: " + error.type;
 
             });
 
         }
 
 
-        // =====================================================
-        // CONNECTION SETUP
-        // =====================================================
+        // ==================================================
+        // CONNECTION
+        // ==================================================
 
         function setupConnection() {
 
-            if (!connection) {
-
-                return;
-
-            }
-
-
-            console.log("Setting up connection...");
-
-
             connection.on("open", function() {
-
-                console.log("DATA CONNECTION OPEN!");
-
 
                 gameStarted = true;
 
-
                 document.getElementById("status").textContent =
                     "Connected! You are Player " + mySymbol;
-
 
                 updateTurn();
 
             });
 
 
-            // =================================================
-            // RECEIVE DATA
-            // =================================================
-
             connection.on("data", function(data) {
 
-                console.log("DATA RECEIVED:", data);
+                console.log("Received:", data);
 
 
-                // Receive game state
+                // ------------------------------------------
+                // RECEIVE MOVE
+                // ------------------------------------------
 
-                if (data.type === "gameState") {
+                if (data.type === "move") {
 
-                    console.log("Updating board from other player.");
-
-
-                    board = data.board;
-
-                    currentPlayer =
-                        data.currentPlayer;
-
-                    gameOver =
-                        data.gameOver;
-
-
-                    updateBoard();
-
-
-                    showGameResult();
-
-
-                    updateTurn();
+                    receiveMove(
+                        data.position,
+                        data.symbol
+                    );
 
                 }
 
 
-                // Receive restart
+                // ------------------------------------------
+                // RECEIVE RESTART
+                // ------------------------------------------
 
                 if (data.type === "restart") {
 
-                    console.log("Restart received.");
-
-
-                    board = [
-
-                        "",
-                        "",
-                        "",
-
-                        "",
-                        "",
-                        "",
-
-                        "",
-                        ""
-
-                    ];
-
-
-                    currentPlayer = "X";
-
-                    gameOver = false;
-
-
-                    updateBoard();
-
-
-                    document.getElementById("status").textContent =
-                        "Game restarted.";
-
-
-                    updateTurn();
+                    resetGame();
 
                 }
 
             });
 
 
-            // =================================================
-            // CONNECTION CLOSE
-            // =================================================
-
             connection.on("close", function() {
-
-                console.log("Connection closed.");
-
 
                 gameStarted = false;
 
-
                 document.getElementById("status").textContent =
                     "The other player disconnected.";
-
 
                 document.getElementById("turn").textContent =
                     "Waiting for player...";
@@ -479,51 +307,30 @@
             });
 
 
-            // =================================================
-            // CONNECTION ERROR
-            // =================================================
-
             connection.on("error", function(error) {
 
-                console.error(
-                    "DATA CONNECTION ERROR:",
-                    error
-                );
-
+                console.log("Connection error:", error);
 
                 document.getElementById("status").textContent =
-                    "Connection error. Check the browser console.";
+                    "Connection error.";
 
             });
 
         }
 
 
-        // =====================================================
+        // ==================================================
         // MAKE MOVE
-        // =====================================================
+        // ==================================================
 
         function makeMove(position) {
 
-            console.log(
-                "Attempting move:",
-                position
-            );
-
-
-            // Game hasn't started
-
             if (!gameStarted) {
-
-                document.getElementById("status").textContent =
-                    "Wait for the other player to join.";
 
                 return;
 
             }
 
-
-            // Game finished
 
             if (gameOver) {
 
@@ -532,19 +339,15 @@
             }
 
 
-            // Not our turn
-
             if (currentPlayer !== mySymbol) {
 
                 document.getElementById("status").textContent =
-                    "Wait for your turn.";
+                    "It is not your turn.";
 
                 return;
 
             }
 
-
-            // Cell already occupied
 
             if (board[position] !== "") {
 
@@ -553,117 +356,229 @@
             }
 
 
-            // =================================================
-            // MAKE MOVE
-            // =================================================
+            // Put player's symbol on board
 
-            board[position] =
-                mySymbol;
+            board[position] = mySymbol;
 
 
-            console.log(
-                "Board after move:",
-                board
-            );
+            updateBoard();
 
 
-            // Check winner
+            // Check result
 
-            checkWinner();
+            const result = getGameResult();
 
 
-            // Change player if game continues
+            if (result === "X") {
 
-            if (!gameOver) {
+                gameOver = true;
+
+                document.getElementById("status").textContent =
+                    "Player X Wins!";
+
+            }
+
+            else if (result === "O") {
+
+                gameOver = true;
+
+                document.getElementById("status").textContent =
+                    "Player O Wins!";
+
+            }
+
+            else if (result === "draw") {
+
+                gameOver = true;
+
+                document.getElementById("status").textContent =
+                    "It's a Draw!";
+
+            }
+
+            else {
+
+                // Change turn
 
                 currentPlayer =
                     currentPlayer === "X"
                     ? "O"
                     : "X";
 
+                updateTurn();
+
             }
 
 
-            // Update our screen
+            // Send move to opponent
 
-            updateBoard();
+            if (connection && connection.open) {
 
-            showGameResult();
+                connection.send({
 
-            updateTurn();
+                    type: "move",
 
+                    position: position,
 
-            // =================================================
-            // SEND TO OTHER PLAYER
-            // =================================================
+                    symbol: mySymbol
 
-            if (
-                connection &&
-                connection.open
-            ) {
-
-                const gameState = {
-
-                    type: "gameState",
-
-                    board: board,
-
-                    currentPlayer:
-                        currentPlayer,
-
-                    gameOver:
-                        gameOver
-
-                };
-
-
-                console.log(
-                    "SENDING:",
-                    gameState
-                );
-
-
-                connection.send(gameState);
-
-
-                console.log(
-                    "SEND COMPLETE"
-                );
-
-            } else {
-
-                console.error(
-                    "Connection is not open!"
-                );
-
-
-                document.getElementById("status").textContent =
-                    "Connection lost.";
+                });
 
             }
 
         }
 
 
-        // =====================================================
+        // ==================================================
+        // RECEIVE MOVE
+        // ==================================================
+
+        function receiveMove(position, symbol) {
+
+            // Ignore invalid moves
+
+            if (gameOver) {
+
+                return;
+
+            }
+
+
+            if (board[position] !== "") {
+
+                console.log("Invalid move received.");
+
+                return;
+
+            }
+
+
+            // Make opponent's move
+
+            board[position] = symbol;
+
+
+            updateBoard();
+
+
+            // Check result
+
+            const result = getGameResult();
+
+
+            if (result === "X") {
+
+                gameOver = true;
+
+                document.getElementById("status").textContent =
+                    "Player X Wins!";
+
+                return;
+
+            }
+
+
+            if (result === "O") {
+
+                gameOver = true;
+
+                document.getElementById("status").textContent =
+                    "Player O Wins!";
+
+                return;
+
+            }
+
+
+            if (result === "draw") {
+
+                gameOver = true;
+
+                document.getElementById("status").textContent =
+                    "It's a Draw!";
+
+                return;
+
+            }
+
+
+            // Change turn
+
+            currentPlayer =
+                currentPlayer === "X"
+                ? "O"
+                : "X";
+
+
+            updateTurn();
+
+        }
+
+
+        // ==================================================
+        // CHECK GAME RESULT
+        // ==================================================
+
+        function getGameResult() {
+
+            // Check winning combinations
+
+            for (let pattern of winningPatterns) {
+
+                const a = board[pattern[0]];
+
+                const b = board[pattern[1]];
+
+                const c = board[pattern[2]];
+
+
+                if (
+                    a !== "" &&
+                    a === b &&
+                    b === c
+                ) {
+
+                    return a;
+
+                }
+
+            }
+
+
+            // Check draw
+
+            if (!board.includes("")) {
+
+                return "draw";
+
+            }
+
+
+            // Game continues
+
+            return null;
+
+        }
+
+
+        // ==================================================
         // UPDATE BOARD
-        // =====================================================
+        // ==================================================
 
         function updateBoard() {
 
             cells.forEach(function(cell, index) {
 
-                cell.textContent =
-                    board[index];
+                cell.textContent = board[index];
 
             });
 
         }
 
 
-        // =====================================================
+        // ==================================================
         // UPDATE TURN
-        // =====================================================
+        // ==================================================
 
         function updateTurn() {
 
@@ -686,7 +601,9 @@
                 document.getElementById("turn").textContent =
                     "Your Turn (" + mySymbol + ")";
 
-            } else {
+            }
+
+            else {
 
                 document.getElementById("turn").textContent =
                     "Player " + currentPlayer + "'s Turn";
@@ -696,101 +613,9 @@
         }
 
 
-        // =====================================================
-        // CHECK WINNER
-        // =====================================================
-
-        function checkWinner() {
-
-            for (
-                let pattern of winningPatterns
-            ) {
-
-                const a =
-                    board[pattern[0]];
-
-                const b =
-                    board[pattern[1]];
-
-                const c =
-                    board[pattern[2]];
-
-
-                if (
-                    a !== "" &&
-                    a === b &&
-                    b === c
-                ) {
-
-                    gameOver = true;
-
-                    return;
-
-                }
-
-            }
-
-
-            // Draw
-
-            if (!board.includes("")) {
-
-                gameOver = true;
-
-            }
-
-        }
-
-
-        // =====================================================
-        // SHOW RESULT
-        // =====================================================
-
-        function showGameResult() {
-
-            for (
-                let pattern of winningPatterns
-            ) {
-
-                const a =
-                    board[pattern[0]];
-
-                const b =
-                    board[pattern[1]];
-
-                const c =
-                    board[pattern[2]];
-
-
-                if (
-                    a !== "" &&
-                    a === b &&
-                    b === c
-                ) {
-
-                    document.getElementById("status").textContent =
-                        "Player " + a + " Wins!";
-
-                    return;
-
-                }
-
-            }
-
-
-            if (!board.includes("")) {
-
-                document.getElementById("status").textContent =
-                    "It's a Draw!";
-
-            }
-
-        }
-
-
-        // =====================================================
-        // RESTART GAME
-        // =====================================================
+        // ==================================================
+        // RESTART
+        // ==================================================
 
         function restartGame() {
 
@@ -801,18 +626,35 @@
             }
 
 
+            resetGame();
+
+
+            if (connection && connection.open) {
+
+                connection.send({
+
+                    type: "restart"
+
+                });
+
+            }
+
+        }
+
+
+        // ==================================================
+        // RESET
+        // ==================================================
+
+        function resetGame() {
+
             board = [
 
-                "",
-                "",
-                "",
+                "", "", "",
 
-                "",
-                "",
-                "",
+                "", "", "",
 
-                "",
-                ""
+                "", "", ""
 
             ];
 
@@ -830,22 +672,6 @@
 
 
             updateTurn();
-
-
-            // Send restart
-
-            if (
-                connection &&
-                connection.open
-            ) {
-
-                connection.send({
-
-                    type: "restart"
-
-                });
-
-            }
 
         }
 
